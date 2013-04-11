@@ -4,8 +4,9 @@ void setup() {
   Serial.begin(38400);
   Serial.println("Started");
   TCCR1A = 0; // use standard options
-  TCCR1B = _BV(ICNC1) | _BV(ICES1) | _BV(CS11); // enable noise-canceler, select rising edges, divide clock by 8
+  TCCR1B = _BV(ICNC1) | _BV(CS11); // enable noise-canceler, divide clock by 8
   TIMSK1 = _BV(ICIE1); // enable interrupts on input capture
+  DDRB &= ~_BV(0); // read from pin 8
 }
 
 volatile boolean validHigh;
@@ -35,22 +36,21 @@ ISR( TIMER1_CAPT_vect ) {
   }
 }
 
-void loop() {}
+void loop() { }
 
 int writeCount = 0;
+unsigned long data;
 void writeBit(boolean b) {
-  Serial.print(bit, BIN);
+  data = (data << 1) | b;
   writeCount++;
-  if(writeCount % 8 == 0) Serial.print(" ");
   if(writeCount >= 40) {
-    Serial.print("\n"+String(millis()/1000)+" ");
+    Serial.println(data,BIN);
     writeCount=0;
+    data = 0;
   }
 }
 
-int prevWriteCount = 0;
 void invalidSequence() {
-  if ( !(prevWriteCount == writeCount) )
-    Serial.print("\n"+String(millis()/1000)+" ");
-  prevWriteCount = writeCount;
+  writeCount=0;
+  data = 0;
 }
