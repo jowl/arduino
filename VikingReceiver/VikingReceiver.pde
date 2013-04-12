@@ -2,14 +2,13 @@
 
 void setup() {
   Serial.begin(9600);
-  Serial.println("Started");
   TCCR1A = 0;                      // use standard options
   TCCR1B = _BV(ICNC1) | _BV(CS11); // enable noise-canceler, divide clock by 8
   TIMSK1 = _BV(ICIE1);             // enable interrupts on input capture
   DDRB &= ~_BV(0);                 // read from pin 8
 }
 
-Message msg = {0,0,0,0,0,0};
+Message msg;
 int bitCount = 0;
 unsigned long data = 0;
 unsigned char crc = 0;
@@ -40,7 +39,13 @@ ISR( TIMER1_CAPT_vect ) {
   }
 }
 
-void loop() { }
+boolean newMsg=false;
+void loop() {
+  if ( newMsg ) {
+    printMsg();
+    newMsg = false;
+  }
+}
 
 /*
    36 bits: ????aaaa aaaasttt tttttttt hhhhhhhh cccc
@@ -60,7 +65,8 @@ void handleBit(bit b) {
     crc = (crc << 1) | b;
   bitCount++;
   if ( bitCount >= 36 ) {
-    printMsg(parse(~data, ~crc)); // input is negated
+    msg = parse(~data, ~crc); // input is negated
+    newMsg = true;
     reset();
   }
 }
@@ -76,12 +82,12 @@ Message parse(unsigned long data, unsigned char crc) {
   return msg;
 }
 
-void printMsg(Message msg) {
+void printMsg() {
   String address = String(msg.address,DEC);
   String temperature = String(msg.temperature / 10,DEC) + "." +
     String(msg.temperature % 10,DEC);
-  Serial.println("{\"device\" : \"viking\", \"id\" : " + address +
-                 ", \"temperature\" : " + temperature + "}");
+  if ( msg.negative ) temperature = "-" + temperature;
+  Serial.println("{\"type\" : \"temperature\", \"unit\" : \"C\", \"device\" : \"viking\", \"id\" : " + address + ", \"value\" : " + temperature + "}");
 }
 
 void invalidSequence() {
@@ -92,10 +98,4 @@ void reset() {
   data = 0;
   crc = 0;
   bitCount = 0;
-  msg.unknown = 0;
-  msg.address = 0;
-  msg.negative = 0;
-  msg.temperature = 0;
-  msg.humidity = 0;
-  msg.crc = 0;
 }
