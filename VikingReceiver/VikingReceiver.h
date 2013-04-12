@@ -1,3 +1,13 @@
+typedef unsigned char bit;
+typedef struct {
+  unsigned char unknown;
+  unsigned char address;
+  unsigned char negative;
+  unsigned int temperature;
+  unsigned char humidity;
+  unsigned char crc;
+} Message;
+
 #define CYCLES_PER_US     (F_CPU/1000000UL)
 #define TIMER_PRESC       (8)
 #define VIKING_LOW        (940*CYCLES_PER_US/TIMER_PRESC)
