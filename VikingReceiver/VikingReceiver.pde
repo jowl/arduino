@@ -11,8 +11,8 @@ void setup() {
 Message msg;
 int bitCount = 0;
 unsigned long data = 0;
-unsigned char crc = 0;
-volatile boolean validHigh;
+byte crc = 0;
+volatile boolean validLow;
 volatile bit value;
 ISR( TIMER1_CAPT_vect ) {
   TCNT1 = 0;                            // reset timer count
@@ -21,21 +21,17 @@ ISR( TIMER1_CAPT_vect ) {
   TCCR1B ^= _BV(ICES1);                 // detect other edge (rising/falling)
 
   if ( wasLow ) {
-    if ( validHigh && VALID_LOW(pulseWidth) ) {
-      handleBit(value);
-    }
-    else invalidSequence();
-    validHigh = false;
+    validLow = VALID_LOW(pulseWidth);
+    if ( !validLow ) invalidSequence();
   } else {
-    if ( VALID_HIGH_ONE(pulseWidth) ) {
-      validHigh = true;
-      value = 1;
+    if ( validLow && VALID_HIGH_ONE(pulseWidth)) {
+      handleBit(1);
     }
-    else if ( VALID_HIGH_ZERO(pulseWidth) ) {
-      validHigh = true;
-      value = 0;
+    else if ( validLow && VALID_HIGH_ZERO(pulseWidth) ) {
+      handleBit(0);
     }
     else invalidSequence();
+    validLow = false;
   }
 }
 
@@ -48,7 +44,7 @@ void loop() {
 }
 
 /*
-   36 bits: ????aaaa aaaasttt tttttttt hhhhhhhh cccc
+   5 bytes: 1???aaaa aaaasttt tttttttt hhhhhhhh cccccccc
 
    ? = unknown
    a = address
@@ -64,14 +60,16 @@ void handleBit(bit b) {
   else
     crc = (crc << 1) | b;
   bitCount++;
-  if ( bitCount >= 36 ) {
-    msg = parse(~data, ~crc); // input is negated
-    newMsg = true;
+  if ( bitCount >= 40 ) {
+    if ( (~crc & 0xff) == crc8(~data) ) {
+      msg = parse(~data, ~crc); // input is negated
+      newMsg = true;
+    }
     reset();
   }
 }
 
-Message parse(unsigned long data, unsigned char crc) {
+Message parse(unsigned long data, byte crc) {
   Message msg = {0,0,0,0,0,0};
   msg.unknown = (data >> 28) & 0x0f;
   msg.address = (data >> 20) & 0xff;
@@ -98,4 +96,13 @@ void reset() {
   data = 0;
   crc = 0;
   bitCount = 0;
+}
+
+byte crc8(long data) {
+  byte crc = 0;
+  for ( int i = 0; i < 32; i++ ) {
+    int inv = ((data>>(31-i)) ^ (crc>>7)) & 0x1;
+    crc = ((crc << 1) | inv) ^ ((inv << 4) | ((inv << 5)));
+  }
+  return crc & 0xff;
 }
