@@ -85,7 +85,7 @@ void printMsg() {
   String temperature = String(msg.temperature / 10,DEC) + "." +
     String(msg.temperature % 10,DEC);
   if ( msg.negative ) temperature = "-" + temperature;
-  Serial.println("{\"type\" : \"temperature\", \"unit\" : \"C\", \"device\" : \"viking\", \"id\" : " + address + ", \"value\" : " + temperature + "}");
+  Serial.println("{\"type\" : \"temperature\", \"device\" : \"viking\", \"id\" : " + address + ", \"value\" : " + temperature + "}");
 }
 
 void invalidSequence() {
