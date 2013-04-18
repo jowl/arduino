@@ -24,7 +24,7 @@ ISR( TIMER1_CAPT_vect ) {
     validLow = VALID_LOW(pulseWidth);
     if ( !validLow ) invalidSequence();
   } else {
-    if ( validLow && VALID_HIGH_ONE(pulseWidth)) {
+    if ( validLow && VALID_HIGH_ONE(pulseWidth) ) {
       handleBit(1);
     }
     else if ( validLow && VALID_HIGH_ZERO(pulseWidth) ) {
@@ -81,11 +81,11 @@ Message parse(unsigned long data, byte crc) {
 }
 
 void printMsg() {
-  String address = String(msg.address,DEC);
-  String temperature = String(msg.temperature / 10,DEC) + "." +
+  String address = String(msg.address, DEC);
+  String temperature = String(msg.temperature / 10, DEC) + "." +
     String(msg.temperature % 10,DEC);
   if ( msg.negative ) temperature = "-" + temperature;
-  Serial.println("{\"type\" : \"temperature\", \"device\" : \"viking\", \"id\" : " + address + ", \"value\" : " + temperature + "}");
+  Serial.println("{\"device\" : \"viking\", \"address\" : " + address + ", \"temperature\" : " + temperature + "}");
 }
 
 void invalidSequence() {
